@@ -85,6 +85,10 @@ doc_events = {
 	},
 	"Forward Booking": {
 		"on_update": "forex.api.forward_update"
+	},
+	"Sales Invoice": {
+		"on_submit": "forex.api.si_on_submit",
+		"on_cancel": "forex.api.si_on_cancel"
 	}
 }
 
