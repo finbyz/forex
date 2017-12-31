@@ -71,14 +71,12 @@ def get_chart_data(data, filters):
 		date_range = int(to_date.strftime(period[based_on])) - int(from_date.strftime(period[based_on]))
 		
 	if based_on == "Day":
-		for d in xrange(date_range):
+		for d in xrange(date_range+1):
 			cnt = 0
 			date = from_date + datetime.timedelta(days=d)
-			year = str(date.strftime("%Y"))
 			for row in data:
 				sql_date = getdate(row["Date"])
-				sql_year = str(sql_date.strftime("%Y"))
-				if date == sql_date and year == sql_year:
+				if date == sql_date:
 					cnt += 1
 			
 			count.append(cnt)
@@ -86,7 +84,7 @@ def get_chart_data(data, filters):
 	
 	else:
 		period_date = dict()
-		for x in xrange(date_diff(to_date, from_date)):
+		for x in xrange(date_diff(to_date, from_date)+1):
 			tmp_date = from_date + datetime.timedelta(days=x)
 			tmp_period = str(tmp_date.strftime(period[based_on]))
 			if tmp_period not in period_date:
@@ -97,11 +95,9 @@ def get_chart_data(data, filters):
 		for key, values in sorted(period_date.items()):
 			cnt = 0
 			for date in values:
-				year = str(date.strftime("%Y"))
 				for row in data:
 					sql_date = getdate(row["Date"])
-					sql_year = str(sql_date.strftime("%Y"))
-					if date == sql_date and year == sql_year:
+					if date == sql_date:
 						cnt += 1
 						
 			count.append(cnt)
