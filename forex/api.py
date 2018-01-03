@@ -31,10 +31,13 @@ def create_jv(self, method):
 		if self.total_duty_drawback:
 			drawback_receivable_account = frappe.db.get_value("Company", { "company_name": self.company}, "duty_drawback_receivable_account")
 			drawback_income_account = frappe.db.get_value("Company", { "company_name": self.company}, "duty_drawback_income_account")
+			drawback_cost_center = frappe.db.get_value("Company", { "company_name": self.company}, "duty_drawback_cost_center")
 			if not drawback_receivable_account:
 				frappe.throw(_("Set Duty Drawback Receivable Account in Company"))
 			elif not drawback_income_account:
 				frappe.throw(_("Set Duty Drawback Income Account in Company"))
+			elif not drawback_cost_center:
+				frappe.throw(_("Set Duty Drawback Cost Center in Company"))
 			else:
 				jv = frappe.new_doc("Journal Entry")
 				jv.voucher_type = "Duty Drawback Entry"
@@ -45,12 +48,12 @@ def create_jv(self, method):
 				jv.user_remark = "Duty draw back against" + self.name + " for " + self.customer
 				jv.append("accounts", {
 					"account": drawback_receivable_account,
-					"cost_center": "Export - BE",
+					"cost_center": drawback_cost_center,
 					"debit_in_account_currency": self.total_duty_drawback
 				})
 				jv.append("accounts", {
 					"account": drawback_income_account,
-					"cost_center": "Export - BE",
+					"cost_center": drawback_cost_center,
 					"credit_in_account_currency": self.total_duty_drawback
 				})
 				jv.save(ignore_permissions=True)
