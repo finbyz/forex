@@ -20,7 +20,7 @@ def execute(filters=None):
 def get_columns():
 	columns = [_("Lead") + ":Link/Lead:80",  
 				_("User") + ":Link/User:100",  
-				_("Date") + ":Data:100",
+				_("Date") + ":Date:120",
 				_("Caller") + "::110", 
 				_("Organization") + "::180", 
 				_("Person") + "::120", 
@@ -43,7 +43,7 @@ def get_data(filters):
 	
 	return frappe.db.sql("""
 		select
-			co.reference_name as "Lead", co.user as "User" , CAST(co.communication_date as date) as "Date", co.sender_full_name as "Caller", ld.company_name as "Organization", ld.lead_name as "Person",  co.subject as "Comment", ld.contact_date as "Schedule", ld.source as "Source" , ld.Status as "Status" , ld.mobile_no as "Mobile" ,	ld.phone as "Phone"
+			co.reference_name as "Lead", co.user as "User" , co.communication_date as "Date", co.sender_full_name as "Caller", ld.company_name as "Organization", ld.lead_name as "Person",  co.subject as "Comment", ld.contact_date as "Schedule", ld.source as "Source" , ld.Status as "Status" , ld.mobile_no as "Mobile" ,	ld.phone as "Phone"
 		from
 			`tabCommunication` as co left join `tabLead` as ld on (co.reference_name = ld.name)
 		where
