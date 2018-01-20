@@ -17,6 +17,56 @@ def payment_on_cancel(self, method):
 def forward_update(self, method):
 	cover_so(self, method)
 	cover_po(self,method)
+	
+@frappe.whitelist()	
+def si_on_submit(self, method):
+	create_jv(self, method)
+	
+@frappe.whitelist()	
+def si_on_cancel(self, method):
+	cancel_jv(self, method)
+	
+def create_jv(self, method):
+	if self.currency != "INR":
+		if self.total_duty_drawback:
+			drawback_receivable_account = frappe.db.get_value("Company", { "company_name": self.company}, "duty_drawback_receivable_account")
+			drawback_income_account = frappe.db.get_value("Company", { "company_name": self.company}, "duty_drawback_income_account")
+			drawback_cost_center = frappe.db.get_value("Company", { "company_name": self.company}, "duty_drawback_cost_center")
+			if not drawback_receivable_account:
+				frappe.throw(_("Set Duty Drawback Receivable Account in Company"))
+			elif not drawback_income_account:
+				frappe.throw(_("Set Duty Drawback Income Account in Company"))
+			elif not drawback_cost_center:
+				frappe.throw(_("Set Duty Drawback Cost Center in Company"))
+			else:
+				jv = frappe.new_doc("Journal Entry")
+				jv.voucher_type = "Duty Drawback Entry"
+				jv.posting_date = self.posting_date
+				jv.company = self.company
+				jv.cheque_no = self.name
+				jv.cheque_date = self.posting_date
+				jv.user_remark = "Duty draw back against" + self.name + " for " + self.customer
+				jv.append("accounts", {
+					"account": drawback_receivable_account,
+					"cost_center": drawback_cost_center,
+					"debit_in_account_currency": self.total_duty_drawback
+				})
+				jv.append("accounts", {
+					"account": drawback_income_account,
+					"cost_center": drawback_cost_center,
+					"credit_in_account_currency": self.total_duty_drawback
+				})
+				jv.save(ignore_permissions=True)
+				jv.submit()
+				self.duty_drawback_jv = jv.name
+				self.save(ignore_permissions=True)
+				frappe.db.commit()
+	
+def cancel_jv(self, method):
+	if self.duty_drawback_jv:
+		jv = frappe.get_doc("Journal Entry", self.duty_drawback_jv)
+		jv.cancel()
+		frappe.db.commit()
 
 #On Submit Payment
 def fwd_uti(self, method):
@@ -69,7 +119,7 @@ def cover_so(self, method):
 		so.forward_contract = self.name
 		so.amount_covered = row.amount_covered
 		so.amount_unhedged = so.grand_total - row.amount_covered
-		so.save()
+		so.save(ignore_permissions=True)
 		frappe.db.commit()
 
 def cover_po(self, method):
@@ -78,7 +128,7 @@ def cover_po(self, method):
 		po.forward_contract = self.name
 		po.amount_covered = row.amount_covered
 		po.amount_unhedged = so.grand_total - row.amount_covered
-		po.save()
+		po.save(ignore_permissions=True)
 		frappe.db.commit()
 
 @frappe.whitelist()
