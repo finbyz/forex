@@ -16,31 +16,38 @@ def execute(filters=None):
 	return columns, data, None, chart
 
 def get_columns():
-	columns = [_("Sales Order") + ":Link/Sales Order:120",  
-				_("Date") + ":Date:100",
+	columns = [_("Sales Order") + ":Link/Sales Order:100",  
+				_("Order Date") + ":Date:80",
+				_("Payment Date") + ":Date:80",				
 				_("Customer") + ":Link/Customer:180",
 				dict(fieldname = "ccy",
 					label = _("CCY"),
 					fieldtype = "Link",
 					options = "Currency",
-					width = 50),
+					width = 40),
 				dict(label = _("Total Amount"), 
 					fieldtype = "Currency", 
 					options = "ccy", 
 					width = 100),
 				_("Rate") + ":Float:80",
 				_("INR Amount") + ":Currency:100",
-				_("Forward") + ":Link/Forward Booking:80",
-				dict(label = _("Amount Hedged"), 
+				_("Forward") + ":Link/Forward Booking:70",
+				dict(label = _("Hedged Amt"), 
 					fieldtype = "Currency", 
 					options = "ccy", 
 					width = 100),
-				dict(label = _("Amount Unhedged"), 
+				dict(label = _("Unhedged Amt"), 
 					fieldtype = "Currency", 
 					options = "ccy", 
 					width = 100),
-				_("Natural Hedge") + "::80",
-				_("Delivery Date") + ":Date:100",
+				dict(label = _("Advance Recd"), 
+					fieldtype = "Currency", 
+					options = "ccy", 
+					width = 100),
+				dict(label = _("Natural Hedge"), 
+					fieldtype = "Currency", 
+					options = "ccy", 
+					width = 100),
 				_("Status") + "::150",
 	]
 	return columns
@@ -54,17 +61,18 @@ def get_data(filters):
 	data = frappe.db.sql("""
 		select 
 			so.name as "Sales Order",
-			so.transaction_date as "Date",
+			so.transaction_date as "Order Date",
+			so.delivery_date as "Payment Date",			
 			so.customer as "Customer",
 			so.currency as "ccy",
-			(so.grand_total-(so.advance_paid/so.conversion_rate)) as "Total Amount",
+			so.grand_total as "Total Amount",
 			so.conversion_rate as "Rate",
 			so.base_grand_total as "INR Amount",
 			so.forward_contract as "Forward",
-			so.amount_covered as "Amount Hedged",
-			so.amount_unhedged as "Amount Unhedged",
+			so.amount_covered as "Hedged Amt",
+			(so.amount_unhedged-so.advance_paid) as "Unhedged Amt",			
+			so.advance_paid as "Advance Recd",		
 			so.natural_hedge as "Natural Hedge",
-			so.delivery_date as "Delivery Date",
 			so.status as "Status"
 		from	
 			`tabSales Order` so
@@ -86,7 +94,7 @@ def get_chart_data(data):
 	dates = []
 	
 	for row in data:
-		date = getdate(row[11])
+		date = getdate(row[2])
 		if str(date.strftime("%b-%Y")) not in dates:
 			dates.append(str(date.strftime("%b-%Y")))
 	
@@ -97,12 +105,12 @@ def get_chart_data(data):
 		hedged = 0
 		unhedged = 0
 		for row in data:
-			d = getdate(row[11])
+			d = getdate(row[2])
 			period = str(d.strftime("%b-%Y"))
 			if period == month:
-				amt += row[4]
-				hedged += row[8]
-				unhedged += row[9]
+				amt += row[5]
+				hedged += row[9]
+				unhedged += row[10]
 				
 		total_amount.append(amt)
 		total_hedged.append(hedged)
