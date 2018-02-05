@@ -80,7 +80,6 @@ def get_data(filters):
 			so.docstatus = 1
 			and so.status != 'Closed'
 			and so.status != 'Completed'
-			and so.amount_covered < so.grand_total
 			%s
 		order by so.delivery_date asc"""%where_clause)
 		
