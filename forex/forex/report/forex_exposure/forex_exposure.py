@@ -16,38 +16,30 @@ def execute(filters=None):
 	return columns, data, None, chart
 
 def get_columns():
-	columns = [_("Sales Order") + ":Link/Sales Order:100",  
-				_("Order Date") + ":Date:80",
-				_("Payment Date") + ":Date:80",				
+	columns = [_("Sales Order") + ":Link/Sales Order:120",  
+				_("Date") + ":Date:100",
 				_("Customer") + ":Link/Customer:180",
 				dict(fieldname = "ccy",
 					label = _("CCY"),
 					fieldtype = "Link",
 					options = "Currency",
-					width = 40),
+					width = 50),
 				dict(label = _("Total Amount"), 
 					fieldtype = "Currency", 
 					options = "ccy", 
 					width = 100),
 				_("Rate") + ":Float:80",
 				_("INR Amount") + ":Currency:100",
-				_("Forward") + ":Link/Forward Booking:70",
-				dict(label = _("Hedged Amt"), 
+				dict(label = _("Amount Hedged"), 
 					fieldtype = "Currency", 
 					options = "ccy", 
 					width = 100),
-				dict(label = _("Unhedged Amt"), 
+				dict(label = _("Amount Unhedged"), 
 					fieldtype = "Currency", 
 					options = "ccy", 
 					width = 100),
-				dict(label = _("Advance Recd"), 
-					fieldtype = "Currency", 
-					options = "ccy", 
-					width = 100),
-				dict(label = _("Natural Hedge"), 
-					fieldtype = "Currency", 
-					options = "ccy", 
-					width = 100),
+				_("Natural Hedge") + "::80",
+				_("Delivery Date") + ":Date:100",
 				_("Status") + "::150",
 	]
 	return columns
@@ -61,18 +53,16 @@ def get_data(filters):
 	data = frappe.db.sql("""
 		select 
 			so.name as "Sales Order",
-			so.transaction_date as "Order Date",
-			so.delivery_date as "Payment Date",			
+			so.transaction_date as "Date",
 			so.customer as "Customer",
 			so.currency as "ccy",
-			so.grand_total as "Total Amount",
+			(so.grand_total-(so.advance_paid/so.conversion_rate)) as "Total Amount",
 			so.conversion_rate as "Rate",
 			so.base_grand_total as "INR Amount",
-			so.forward_contract as "Forward",
-			so.amount_covered as "Hedged Amt",
-			(so.amount_unhedged-so.advance_paid) as "Unhedged Amt",			
-			so.advance_paid as "Advance Recd",		
+			so.amount_covered as "Amount Hedged",
+			so.amount_unhedged as "Amount Unhedged",
 			so.natural_hedge as "Natural Hedge",
+			so.delivery_date as "Delivery Date",
 			so.status as "Status"
 		from	
 			`tabSales Order` so
@@ -80,10 +70,10 @@ def get_data(filters):
 			so.docstatus = 1
 			and so.status != 'Closed'
 			and so.status != 'Completed'
+			and so.amount_covered < so.grand_total
 			%s
 		order by so.delivery_date asc"""%where_clause)
 		
-	#d = list(data)
 	return data
 		
 def get_chart_data(data):
@@ -93,7 +83,7 @@ def get_chart_data(data):
 	dates = []
 	
 	for row in data:
-		date = getdate(row[2])
+		date = getdate(row[10]) # Delivery Date field
 		if str(date.strftime("%b-%Y")) not in dates:
 			dates.append(str(date.strftime("%b-%Y")))
 	
@@ -104,12 +94,12 @@ def get_chart_data(data):
 		hedged = 0
 		unhedged = 0
 		for row in data:
-			d = getdate(row[2])
+			d = getdate(row[10]) # Delivery Date field
 			period = str(d.strftime("%b-%Y"))
 			if period == month:
-				amt += row[5]
-				hedged += row[9]
-				unhedged += row[10]
+				amt += row[4] # Total Amount field
+				hedged += row[7] # Amount Hedged field
+				unhedged += row[8] # Amount Unhedged field
 				
 		total_amount.append(amt)
 		total_hedged.append(hedged)
