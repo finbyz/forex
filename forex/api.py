@@ -230,3 +230,12 @@ def set_other_values(out, party, party_type):
 		to_copy = ["supplier_name", "supplier_type", "language"]
 	for f in to_copy:
 		out[f] = party.get(f)
+
+@frappe.whitelist()
+def get_quality_parameter(item_group):
+
+	return db.get_list("Quality Parameter", filters={'item_group': item_group}, fields='name')
+
+@frappe.whitelist()
+def get_packing_parameter(item_group):
+	return db.get_list("Packing Parameter", filters={'item_group': item_group}, fields='name')
